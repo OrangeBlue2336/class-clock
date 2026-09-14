@@ -1,0 +1,7 @@
+*.txt
+
+desktop.ini
+
+# 압축 스크립트 무시
+*.zip
+*.py

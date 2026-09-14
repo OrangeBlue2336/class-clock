@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학급 시계</title>
+<style>
+  @font-face{
+    font-family: 'GyeonggiTitle';
+    src: url('fonts/경기천년제목_M.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root{
+    --bg: #12141b;
+    --panel: #1a1d26;
+    --line: #2b2f3c;
+    --ink: #edf0f5;
+    --ink-dim: #8791a6;
+    --gold: #e3b34a;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'GyeonggiTitle', -apple-system, 'Malgun Gothic', sans-serif;
+  }
+
+  .board{
+    height: 100vh;
+    padding: clamp(16px, 2.2vw, 40px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "dday    panels"
+      "clock   clock"
+      "ghlink  meals";
+    row-gap: clamp(12px, 1.6vh, 28px);
+    column-gap: 24px;
+  }
+
+  /* ---------- D-day ---------- */
+  .dday{
+    grid-area: dday;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .dday-value{
+    font-size: clamp(1.8rem, 3.4vw, 3.2rem);
+    font-weight: 300;
+    color: var(--gold);
+    letter-spacing: -0.02em;
+  }
+  .dday-caption{
+    font-size: clamp(0.85rem, 1vw, 1.05rem);
+    color: var(--ink-dim);
+  }
+
+  /* ---------- 공지 / 청소 패널 ---------- */
+  .panels{
+    grid-area: panels;
+    justify-self: end;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(380px, 100%);
+  }
+  .panel{
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .panel-label{
+    display: block;
+    font-size: 1.0rem;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  .panel-text{
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: #ffffff;
+    white-space: pre-wrap;
+  }
+  .panel-edit{
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    background: #10121a;
+    color: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 1.1rem;
+    line-height: 1.5;
+  }
+  .panel-controls{
+    display: none;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .panel.open .panel-controls{ display: flex; }
+  .icon-btn{
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 5px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .icon-btn:hover{ color: var(--ink); background: rgba(255,255,255,0.08); }
+  .chevron-btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- 시계 ---------- */
+  .clock{
+    grid-area: clock;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .time{
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(4.5rem, 15vw, 14rem);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .date{
+    margin-top: clamp(8px, 1.2vh, 18px);
+    font-size: clamp(1rem, 1.6vw, 1.7rem);
+    color: var(--ink-dim);
+  }
+
+  /* ---------- 깃헙 링크 ---------- */
+  .ghlink{
+    grid-area: ghlink;
+    align-self: end;
+    justify-self: start;
+    display: flex;
+    align-items: center;
+  }
+  .ghlink a{
+    display: flex;
+    color: var(--ink-dim);
+    transition: color 0.15s ease;
+  }
+  .ghlink a:hover{ color: var(--ink); }
+
+  /* ---------- 급식 ---------- */
+  .meal-panel{
+    grid-area: meals;
+    justify-self: end;
+    align-self: end;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 8px;
+    min-width: 190px;
+  }
+  .meal-arrow{
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .meal-arrow:hover{ color: var(--ink); background: rgba(255,255,255,0.08); }
+  .meal-content{
+    flex: 1;
+    text-align: center;
+  }
+  .meal-content h3{
+    margin: 0 0 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .meal-placeholder{
+    margin: 0;
+    font-size: 0.82rem;
+    color: #5c637a;
+  }
+</style>
+</head>
+<body>
+
+<div class="board">
+
+  <div class="dday">
+    <span id="ddayValue" class="dday-value">D-00</span>
+    <span id="ddayCaption" class="dday-caption"></span>
+  </div>
+
+  <div class="panels">
+    <div class="panel" data-key="notice">
+      <span class="panel-label">공지</span>
+      <p class="panel-text" data-display></p>
+      <textarea class="panel-edit" data-input hidden></textarea>
+      <div class="panel-controls">
+        <button class="icon-btn" data-edit type="button">수정</button>
+        <button class="icon-btn chevron-btn" data-collapse type="button" aria-label="접기">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 9L7 4L12 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel" data-key="cleaning">
+      <span class="panel-label">청소</span>
+      <p class="panel-text" data-display></p>
+      <textarea class="panel-edit" data-input hidden></textarea>
+      <div class="panel-controls">
+        <button class="icon-btn" data-edit type="button">수정</button>
+        <button class="icon-btn chevron-btn" data-collapse type="button" aria-label="접기">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 9L7 4L12 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="clock">
+    <div id="time" class="time">00:00:00</div>
+    <div id="date" class="date"></div>
+  </main>
+
+  <div class="ghlink">
+    <a href="#" id="ghAnchor" target="_blank" rel="noopener" aria-label="깃헙 저장소 열기">
+      <svg width="26" height="26" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38
+          0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+          -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+          .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+          -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04
+          2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15
+          0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2
+          0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="meal-panel">
+    <button class="meal-arrow" data-meal-nav type="button" aria-label="이전">‹</button>
+    <div class="meal-content">
+      <h3 id="mealLabel">중식</h3>
+      <p class="meal-placeholder">급식 연동 예정</p>
+    </div>
+    <button class="meal-arrow" data-meal-nav type="button" aria-label="다음">›</button>
+  </div>
+
+</div>
+
+<script>
+  const TARGET_DATE = "2026-11-19";
+
+  // 깃헙 저장소 주소
+  const REPO_URL = "https://github.com/your-id/your-repo";
+  document.getElementById('ghAnchor').href = REPO_URL;
+
+  // ---------- 시계 ----------
+  const timeEl = document.getElementById('time');
+  const dateEl = document.getElementById('date');
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+
+  function tick(){
+    const now = new Date();
+    timeEl.textContent =
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    dateEl.textContent =
+      `${now.getFullYear()}. ${pad(now.getMonth()+1)}. ${pad(now.getDate())}. ${weekdays[now.getDay()]}요일`;
+    checkMealAutoSwitch(now);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ---------- D-day ----------
+  function updateDday(){
+    const target = new Date(TARGET_DATE + "T00:00:00");
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diff = Math.round((target - today) / 86400000);
+
+    const valueEl = document.getElementById('ddayValue');
+    const captionEl = document.getElementById('ddayCaption');
+
+    if(diff > 0) valueEl.textContent = `D-${diff}`;
+    else if(diff === 0) valueEl.textContent = `D-DAY`;
+    else valueEl.textContent = `D+${Math.abs(diff)}`;
+
+    const [y, m, d] = TARGET_DATE.split('-');
+    captionEl.textContent = `${y}.${m}.${d}`;
+  }
+  updateDday();
+
+  // ---------- 공지 / 청소 패널 ----------
+  const defaults = {
+    notice: '이번 주 공지 사항이 없습니다.',
+    cleaning: '청소 당번을 입력해 주세요.'
+  };
+
+  document.querySelectorAll('.panel').forEach(panel => {
+    const key = panel.dataset.key;
+    const storageKey = `board_${key}`;
+    const editBtn = panel.querySelector('[data-edit]');
+    const collapseBtn = panel.querySelector('[data-collapse]');
+    const display = panel.querySelector('[data-display]');
+    const input = panel.querySelector('[data-input]');
+
+    const saved = localStorage.getItem(storageKey);
+    display.textContent = saved !== null ? saved : defaults[key];
+
+    function closeEditIfOpen(){
+      if(!input.hidden){
+        input.hidden = true;
+        display.hidden = false;
+        editBtn.textContent = '수정';
+      }
+    }
+
+    // 패널 아무 곳이나 누르면 수정/화살표 버튼 노출
+    panel.addEventListener('click', () => {
+      panel.classList.add('open');
+    });
+
+    // 화살표 — 다시 접어서 텍스트만 보이게
+    collapseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeEditIfOpen();
+      panel.classList.remove('open');
+    });
+
+    // 수정 / 저장
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const editing = !input.hidden;
+
+      if(!editing){
+        input.value = display.textContent;
+        display.hidden = true;
+        input.hidden = false;
+        input.focus();
+        editBtn.textContent = '저장';
+      } else {
+        const value = input.value.trim() || defaults[key];
+        display.textContent = value;
+        localStorage.setItem(storageKey, value);
+        display.hidden = false;
+        input.hidden = true;
+        editBtn.textContent = '수정';
+      }
+    });
+  });
+
+  // ---------- 급식 ----------
+  const mealLabelEl = document.getElementById('mealLabel');
+  let mealState = computeAutoMeal(new Date());
+
+  function computeAutoMeal(now){
+    const totalMin = now.getHours() * 60 + now.getMinutes();
+    return totalMin >= (12 * 60 + 40) ? 'dinner' : 'lunch';
+  }
+
+  function renderMeal(){
+    mealLabelEl.textContent = mealState === 'lunch' ? '중식' : '석식';
+  }
+  renderMeal();
+
+  document.querySelectorAll('[data-meal-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mealState = mealState === 'lunch' ? 'dinner' : 'lunch';
+      renderMeal();
+    });
+  });
+
+  // 12:40에 자동으로 석식, 자정에 자동으로 중식으로 전환
+  function checkMealAutoSwitch(now){
+    const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    if(h === 12 && m === 40 && s === 0 && mealState !== 'dinner'){
+      mealState = 'dinner';
+      renderMeal();
+    }
+    if(h === 0 && m === 0 && s === 0 && mealState !== 'lunch'){
+      mealState = 'lunch';
+      renderMeal();
+    }
+  }
+</script>
+
+</body>
+</html>
