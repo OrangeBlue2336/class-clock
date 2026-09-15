@@ -216,20 +216,30 @@
     color: var(--ink);
   }
 
-  /* ---------- 깃헙 링크 ---------- */
+  /* ---------- 깃헙 링크 / 전체화면 ---------- */
   .ghlink{
     grid-area: ghlink;
     align-self: end;
     justify-self: start;
     display: flex;
     align-items: center;
+    gap: 14px;
   }
-  .ghlink a{
+  .ghlink a,
+  .ghlink button{
     display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    padding-right: 15px;
     color: var(--ink-dim);
+    cursor: pointer;
     transition: color 0.15s ease;
   }
-  .ghlink a:hover{ color: var(--ink); }
+  .ghlink a:hover,
+  .ghlink button:hover{ color: var(--ink); }
 
   /* ---------- 급식 ---------- */
   .meal-panel{
@@ -349,6 +359,21 @@
           0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
       </svg>
     </a>
+
+    <button id="fullscreenBtn" type="button" aria-label="전체화면">
+      <svg id="fsEnterIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+        <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+        <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+        <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+      </svg>
+      <svg id="fsExitIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+        <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+        <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
+        <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+      </svg>
+    </button>
   </div>
 
   <div class="meal-panel">
@@ -368,6 +393,43 @@
   // 깃헙 저장소 주소
   const REPO_URL = "https://github.com/OrangeBlue2336/class-clock";
   document.getElementById('ghAnchor').href = REPO_URL;
+
+  // ---------- 전체화면 ----------
+  const fsBtn = document.getElementById('fullscreenBtn');
+  const fsEnterIcon = document.getElementById('fsEnterIcon');
+  const fsExitIcon = document.getElementById('fsExitIcon');
+
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+
+  function enterFullscreen(){
+    const el = document.documentElement;
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if(fn) fn.call(el);
+  }
+
+  function exitFullscreen(){
+    const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if(fn) fn.call(document);
+  }
+
+  function updateFullscreenIcon(){
+    const fs = isFullscreen();
+    fsEnterIcon.style.display = fs ? 'none' : '';
+    fsExitIcon.style.display = fs ? '' : 'none';
+    fsBtn.setAttribute('aria-label', fs ? '전체화면 해제' : '전체화면');
+  }
+
+  fsBtn.addEventListener('click', () => {
+    if(isFullscreen()) exitFullscreen();
+    else enterFullscreen();
+  });
+
+  ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
+    document.addEventListener(evt, updateFullscreenIcon);
+  });
+  updateFullscreenIcon();
 
   // 급식 정보를 가져오는 Cloudflare Worker 주소
   const WORKER_URL = "https://class-clock.snackcandy105.workers.dev/";
