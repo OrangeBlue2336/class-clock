@@ -42,9 +42,9 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto 1fr auto;
     grid-template-areas:
-      "dday    panels"
+      "dday    ."
       "clock   clock"
-      "ghlink  meals";
+      "ghlink  .";
     row-gap: clamp(12px, 1.6vh, 28px);
     column-gap: 24px;
   }
@@ -94,8 +94,9 @@
 
   /* ---------- 공지 / 청소 패널 ---------- */
   .panels{
-    grid-area: panels;
-    justify-self: end;
+    position: absolute;
+    top: clamp(16px, 2.2vw, 40px);
+    right: clamp(16px, 2.2vw, 40px);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -167,7 +168,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     text-align: center;
     padding-top: 48px;
   }
@@ -232,19 +233,22 @@
 
   /* ---------- 급식 ---------- */
   .meal-panel{
-    grid-area: meals;
-    justify-self: end;
-    align-self: end;
+    position: absolute;
+    right: clamp(16px, 2.2vw, 40px);
+    bottom: clamp(16px, 2.2vw, 40px);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     border: 1px solid var(--line);
     border-radius: 6px;
     padding: 12px 8px;
     min-width: 220px;
     max-width: 280px;
+    max-height: 42vh;
+    overflow: hidden;
   }
   .meal-arrow{
+    margin-top: 2px;
     background: none;
     border: none;
     color: var(--ink-dim);
@@ -253,7 +257,6 @@
     padding: 6px 10px;
     border-radius: 4px;
     cursor: pointer;
-    align-self: center;
   }
   .meal-arrow:hover{ color: var(--ink); background: rgba(255,255,255,0.08); }
   .meal-content{
@@ -262,13 +265,13 @@
   }
   .meal-content h3{
     margin: 0 0 6px;
-    font-size: 1rem;
+    font-size: 2rem;
     font-weight: 400;
     color: var(--ink);
   }
   .meal-menu{
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 1.32rem;
     line-height: 1.55;
     color: var(--ink-dim);
   }
@@ -372,25 +375,37 @@
   // =========================================================
   // [임시/테스트용] 디버그 콘솔 — 배포 전 삭제하거나 그대로 둬도 무방합니다.
   // 브라우저 개발자도구 콘솔(F12)에서 아래처럼 사용하세요.
-  //   setDebugTime('수', '09:15')        // 수요일 오전 9:15로 이동, 1배속으로 흐름
-  //   setDebugTime('금', '14:55', 30)    // 금요일 14:55부터 30배속으로 빠르게 흐름
-  //   clearDebugTime()                  // 실제 현재 시간으로 복귀
+  //   setDebugTime('수', '09:15')             // 요일만 지정(가까운 수요일), 1배속으로 흐름
+  //   setDebugTime('금', '14:55', 30)         // 요일 + 30배속으로 빠르게 흐름
+  //   setDebugTime('2026-11-25', '13:00')     // 실제 날짜 지정 (급식 등 날짜별 데이터 테스트용)
+  //   setDebugTime('2026-12-25', '08:00', 60) // 특정 날짜 + 배속
+  //   clearDebugTime()                        // 실제 현재 시간으로 복귀
   // =========================================================
   let DEBUG_OVERRIDE = null;
   const DAY_NAME_TO_INDEX = {'일':0,'월':1,'화':2,'수':3,'목':4,'금':5,'토':6};
 
-  function setDebugTime(dayInput, timeStr, speed){
+  function setDebugTime(dayOrDate, timeStr, speed){
     if(speed === undefined) speed = 1;
-    const jsDay = typeof dayInput === 'number' ? dayInput : DAY_NAME_TO_INDEX[dayInput];
     const parts = timeStr.split(':').map(Number);
     const hh = parts[0], mm = parts[1], ss = parts[2] || 0;
 
-    const ref = new Date();
-    ref.setDate(ref.getDate() + (jsDay - ref.getDay()));
-    ref.setHours(hh, mm, ss, 0);
+    let ref, label;
+    if(typeof dayOrDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dayOrDate)){
+      // 실제 날짜 지정 (급식 등 날짜별 데이터 테스트용) 예: setDebugTime('2026-11-25','13:00')
+      ref = new Date(dayOrDate + 'T00:00:00');
+      ref.setHours(hh, mm, ss, 0);
+      label = `${dayOrDate} (${['일','월','화','수','목','금','토'][ref.getDay()]}요일)`;
+    } else {
+      // 요일만 지정 (시간표 테스트용) 예: setDebugTime('수','09:15')
+      const jsDay = typeof dayOrDate === 'number' ? dayOrDate : DAY_NAME_TO_INDEX[dayOrDate];
+      ref = new Date();
+      ref.setDate(ref.getDate() + (jsDay - ref.getDay()));
+      ref.setHours(hh, mm, ss, 0);
+      label = `${['일','월','화','수','목','금','토'][jsDay]}요일`;
+    }
 
     DEBUG_OVERRIDE = { base: ref, realStart: Date.now(), speed: speed };
-    console.log(`[디버그] ${['일','월','화','수','목','금','토'][jsDay]}요일 ${timeStr}로 설정, 배속 x${speed}`);
+    console.log(`[디버그] ${label} ${timeStr}로 설정, 배속 x${speed}`);
   }
 
   function clearDebugTime(){
