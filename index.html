@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학급 시계</title>
+<link rel="preload" href="fonts/경기천년제목_M.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   @font-face{
     font-family: 'GyeonggiTitle';
     src: url('fonts/경기천년제목_M.woff2') format('woff2');
     font-weight: 500;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
   }
 
   :root{
@@ -34,6 +35,7 @@
   }
 
   .board{
+    position: relative;
     height: 100vh;
     padding: clamp(16px, 2.2vw, 40px);
     display: grid;
@@ -45,6 +47,30 @@
       "ghlink  meals";
     row-gap: clamp(12px, 1.6vh, 28px);
     column-gap: 24px;
+  }
+
+  /* ---------- 현재 일과 (상단 중앙) ---------- */
+  .status-panel{
+    position: absolute;
+    top: clamp(16px, 2.2vw, 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    padding: 8px 22px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+  }
+  .status-label{
+    display: block;
+    font-size: 1.8rem;
+    color: var(--ink-dim);
+    margin-bottom: 2px;
+  }
+  .status-value{
+    font-size: clamp(2.1rem, 1.3vw, 1.3rem);
+    font-weight: 400;
+    color: var(--ink);
   }
 
   /* ---------- D-day ---------- */
@@ -90,7 +116,7 @@
   }
   .panel-text{
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.6rem;
     line-height: 1.6;
     color: #ffffff;
     white-space: pre-wrap;
@@ -141,8 +167,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
+    padding-top: 48px;
+  }
+  .date{
+    margin-bottom: clamp(8px, 1.2vh, 18px);
+    font-size: clamp(1.8rem, 1.6vw, 1.7rem);
+    color: var(--ink-dim);
+  }
+  .time-wrap{
+    position: relative;
+    display: inline-block;
   }
   .time{
     font-variant-numeric: tabular-nums;
@@ -151,10 +187,32 @@
     letter-spacing: -0.01em;
     line-height: 1;
   }
-  .date{
-    margin-top: clamp(8px, 1.2vh, 18px);
-    font-size: clamp(1rem, 1.6vw, 1.7rem);
+  .countdown{
+    position: absolute;
+    left: 4px;
+    bottom: -1.6rem;
+    font-size: clamp(2rem, 1vw, 1rem);
+    font-variant-numeric: tabular-nums;
+    color: var(--gold);
+    white-space: nowrap;
+  }
+  .countdown.hidden,
+  .next-class.hidden{
+    display: none;
+  }
+  .next-class{
+    margin-top: clamp(20px, 3vh, 40px);
+    text-align: center;
+  }
+  .next-class-label{
+    font-size: clamp(1.9rem, 1vw, 1.05rem);
     color: var(--ink-dim);
+  }
+  .next-class-value{
+    margin-top: 4px;
+    font-size: clamp(2.5rem, 2vw, 2rem);
+    font-weight: 400;
+    color: var(--ink);
   }
 
   /* ---------- 깃헙 링크 ---------- */
@@ -183,7 +241,8 @@
     border: 1px solid var(--line);
     border-radius: 6px;
     padding: 12px 8px;
-    min-width: 190px;
+    min-width: 220px;
+    max-width: 280px;
   }
   .meal-arrow{
     background: none;
@@ -194,6 +253,7 @@
     padding: 6px 10px;
     border-radius: 4px;
     cursor: pointer;
+    align-self: center;
   }
   .meal-arrow:hover{ color: var(--ink); background: rgba(255,255,255,0.08); }
   .meal-content{
@@ -201,21 +261,30 @@
     text-align: center;
   }
   .meal-content h3{
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--ink);
   }
-  .meal-placeholder{
+  .meal-menu{
     margin: 0;
     font-size: 0.82rem;
-    color: #5c637a;
+    line-height: 1.55;
+    color: var(--ink-dim);
+  }
+  .meal-menu div{
+    white-space: normal;
   }
 </style>
 </head>
 <body>
 
 <div class="board">
+
+  <div class="status-panel">
+    <span class="status-label">현재 일과</span>
+    <span id="statusValue" class="status-value">-</span>
+  </div>
 
   <div class="dday">
     <span id="ddayValue" class="dday-value">D-00</span>
@@ -253,8 +322,15 @@
   </div>
 
   <main class="clock">
-    <div id="time" class="time">00:00:00</div>
     <div id="date" class="date"></div>
+    <div class="time-wrap">
+      <div id="time" class="time">00:00:00</div>
+      <div id="countdown" class="countdown"></div>
+    </div>
+    <div class="next-class">
+      <div class="next-class-label">다음 일정</div>
+      <div id="nextClassValue" class="next-class-value">-</div>
+    </div>
   </main>
 
   <div class="ghlink">
@@ -276,7 +352,7 @@
     <button class="meal-arrow" data-meal-nav type="button" aria-label="이전">‹</button>
     <div class="meal-content">
       <h3 id="mealLabel">중식</h3>
-      <p class="meal-placeholder">급식 연동 예정</p>
+      <div class="meal-menu" id="mealMenu">불러오는 중...</div>
     </div>
     <button class="meal-arrow" data-meal-nav type="button" aria-label="다음">›</button>
   </div>
@@ -290,6 +366,49 @@
   const REPO_URL = "https://github.com/OrangeBlue2336/class-clock";
   document.getElementById('ghAnchor').href = REPO_URL;
 
+  // 급식 정보를 가져오는 Cloudflare Worker 주소
+  const WORKER_URL = "https://class-clock.snackcandy105.workers.dev/";
+
+  // =========================================================
+  // [임시/테스트용] 디버그 콘솔 — 배포 전 삭제하거나 그대로 둬도 무방합니다.
+  // 브라우저 개발자도구 콘솔(F12)에서 아래처럼 사용하세요.
+  //   setDebugTime('수', '09:15')        // 수요일 오전 9:15로 이동, 1배속으로 흐름
+  //   setDebugTime('금', '14:55', 30)    // 금요일 14:55부터 30배속으로 빠르게 흐름
+  //   clearDebugTime()                  // 실제 현재 시간으로 복귀
+  // =========================================================
+  let DEBUG_OVERRIDE = null;
+  const DAY_NAME_TO_INDEX = {'일':0,'월':1,'화':2,'수':3,'목':4,'금':5,'토':6};
+
+  function setDebugTime(dayInput, timeStr, speed){
+    if(speed === undefined) speed = 1;
+    const jsDay = typeof dayInput === 'number' ? dayInput : DAY_NAME_TO_INDEX[dayInput];
+    const parts = timeStr.split(':').map(Number);
+    const hh = parts[0], mm = parts[1], ss = parts[2] || 0;
+
+    const ref = new Date();
+    ref.setDate(ref.getDate() + (jsDay - ref.getDay()));
+    ref.setHours(hh, mm, ss, 0);
+
+    DEBUG_OVERRIDE = { base: ref, realStart: Date.now(), speed: speed };
+    console.log(`[디버그] ${['일','월','화','수','목','금','토'][jsDay]}요일 ${timeStr}로 설정, 배속 x${speed}`);
+  }
+
+  function clearDebugTime(){
+    DEBUG_OVERRIDE = null;
+    console.log('[디버그] 해제 — 실제 현재 시간으로 복귀합니다.');
+  }
+
+  window.setDebugTime = setDebugTime;
+  window.clearDebugTime = clearDebugTime;
+
+  function getNow(){
+    if(DEBUG_OVERRIDE){
+      const elapsed = (Date.now() - DEBUG_OVERRIDE.realStart) * DEBUG_OVERRIDE.speed;
+      return new Date(DEBUG_OVERRIDE.base.getTime() + elapsed);
+    }
+    return new Date();
+  }
+
   // ---------- 시계 ----------
   const timeEl = document.getElementById('time');
   const dateEl = document.getElementById('date');
@@ -298,20 +417,26 @@
   function pad(n){ return String(n).padStart(2, '0'); }
 
   function tick(){
-    const now = new Date();
+    const now = getNow();
     timeEl.textContent =
       `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     dateEl.textContent =
       `${now.getFullYear()}. ${pad(now.getMonth()+1)}. ${pad(now.getDate())}. ${weekdays[now.getDay()]}요일`;
+    updateDday(now);
+    updateSchedule(now);
     checkMealAutoSwitch(now);
+    refreshMealsIfNewDay(now);
   }
-  tick();
-  setInterval(tick, 1000);
+
+  function refreshMealsIfNewDay(now){
+    const ymd = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+    if(ymd !== lastMealFetchDate) fetchMeals(now);
+  }
 
   // ---------- D-day ----------
-  function updateDday(){
+  function updateDday(now){
     const target = new Date(TARGET_DATE + "T00:00:00");
-    const today = new Date();
+    const today = new Date(now);
     today.setHours(0,0,0,0);
     const diff = Math.round((target - today) / 86400000);
 
@@ -325,7 +450,103 @@
     const [y, m, d] = TARGET_DATE.split('-');
     captionEl.textContent = `${y}.${m}.${d}`;
   }
-  updateDday();
+
+  // ---------- 시간표----------
+  function toSec(hhmm){
+    const p = hhmm.split(':').map(Number);
+    return p[0]*3600 + p[1]*60;
+  }
+
+  const MON_TUE = [
+    {s:'08:00', e:'08:20', label:'아침 조회'},
+    {s:'08:20', e:'09:10', label:'1교시'},
+    {s:'09:10', e:'09:20', label:'쉬는 시간'},
+    {s:'09:20', e:'10:10', label:'2교시'},
+    {s:'10:10', e:'10:20', label:'쉬는 시간'},
+    {s:'10:20', e:'11:10', label:'3교시'},
+    {s:'11:10', e:'11:20', label:'쉬는 시간'},
+    {s:'11:20', e:'12:10', label:'4교시'},
+    {s:'12:10', e:'13:10', label:'점심 시간'},
+    {s:'13:10', e:'14:00', label:'5교시'},
+    {s:'14:00', e:'14:10', label:'쉬는 시간'},
+    {s:'14:10', e:'15:00', label:'6교시'},
+    {s:'15:00', e:'15:10', label:'쉬는 시간'},
+    {s:'15:10', e:'16:00', label:'7교시'},
+  ];
+  const WED_THU = MON_TUE.slice(0, 12); // 6교시(15:00)까지만
+  const FRI = [
+    {s:'08:00', e:'08:20', label:'아침 조회'},
+    {s:'08:20', e:'09:10', label:'1교시'},
+    {s:'09:10', e:'09:20', label:'쉬는 시간'},
+    {s:'09:20', e:'10:10', label:'2교시'},
+    {s:'10:10', e:'10:20', label:'쉬는 시간'},
+    {s:'10:20', e:'11:10', label:'3교시'},
+    {s:'11:10', e:'11:20', label:'쉬는 시간'},
+    {s:'11:20', e:'12:10', label:'4교시'},
+    {s:'12:10', e:'13:20', label:'점심 시간'},
+    {s:'13:20', e:'15:00', label:'자율'},
+  ];
+
+  // schoolIndex: 월=0, 화=1, 수=2, 목=3, 금=4, 토=5, 일=6 (요일 순서대로 이어붙이기 위함)
+  const SCHEDULE_BY_SCHOOL_INDEX = [MON_TUE, MON_TUE, WED_THU, WED_THU, FRI, [], []];
+
+  const WEEK_EVENTS = [];
+  SCHEDULE_BY_SCHOOL_INDEX.forEach((day, idx) => {
+    day.forEach(seg => {
+      WEEK_EVENTS.push({
+        start: idx * 86400 + toSec(seg.s),
+        end: idx * 86400 + toSec(seg.e),
+        label: seg.label
+      });
+    });
+  });
+  WEEK_EVENTS.sort((a, b) => a.start - b.start);
+  const WEEK_SECONDS = 7 * 86400;
+
+  function jsDayToSchoolIndex(jsDay){ return (jsDay + 6) % 7; } // 일(0)->6, 월(1)->0 ...
+
+  function formatRemain(totalSec){
+    totalSec = Math.max(0, Math.round(totalSec));
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if(h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+    return `${m}:${pad(s)}`;
+  }
+
+  const countdownEl = document.getElementById('countdown');
+  const nextClassEl = document.getElementById('nextClassValue');
+  const nextClassBoxEl = document.querySelector('.next-class');
+  const statusEl = document.getElementById('statusValue');
+
+  function updateSchedule(now){
+    const nowAbs = jsDayToSchoolIndex(now.getDay()) * 86400
+      + now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+    const currentIdx = WEEK_EVENTS.findIndex(ev => nowAbs >= ev.start && nowAbs < ev.end);
+
+    if(currentIdx !== -1){
+      // 지금 교시/쉬는시간/자율 등 정해진 일정 안에 있음 → 해당 일정이 끝날 때까지 카운트
+      const current = WEEK_EVENTS[currentIdx];
+      const remain = current.end - nowAbs;
+      const next = WEEK_EVENTS[(currentIdx + 1) % WEEK_EVENTS.length];
+      // 다음 일정이 현재 일정 바로 뒤에 이어지지 않고 하루가 끝나는 경우(=그 사이가 자습) 라면
+      // 다음날 첫 일정(예: 아침 조회) 대신 "자습"이라고 표시
+      const isBackToBack = next.start === current.end;
+
+      statusEl.textContent = current.label;
+      countdownEl.textContent = `남은 시간: ${formatRemain(remain)}`;
+      nextClassEl.textContent = isBackToBack ? next.label : '자습';
+
+      countdownEl.classList.remove('hidden');
+      nextClassBoxEl.classList.remove('hidden');
+    } else {
+      // 정해진 일정 사이(=자습, 주말 등) → 다음 일정과 카운트다운을 숨김
+      statusEl.textContent = '자습';
+      countdownEl.classList.add('hidden');
+      nextClassBoxEl.classList.add('hidden');
+    }
+  }
 
   // ---------- 공지 / 청소 패널 ----------
   const defaults = {
@@ -352,9 +573,16 @@
       }
     }
 
-    // 패널 아무 곳이나 누르면 수정/화살표 버튼 노출
-    panel.addEventListener('click', () => {
-      panel.classList.add('open');
+    // 패널 아무 곳이나 누르면 수정/화살표 버튼 노출, 열린 상태에서 다시 누르면 닫힘
+    panel.addEventListener('click', (e) => {
+      if(!input.hidden && e.target === input) return; // 수정 중 텍스트 입력 클릭은 무시
+
+      if(panel.classList.contains('open')){
+        closeEditIfOpen();
+        panel.classList.remove('open');
+      } else {
+        panel.classList.add('open');
+      }
     });
 
     // 화살표 — 다시 접어서 텍스트만 보이게
@@ -388,15 +616,66 @@
 
   // ---------- 급식 ----------
   const mealLabelEl = document.getElementById('mealLabel');
-  let mealState = computeAutoMeal(new Date());
+  const mealMenuEl = document.getElementById('mealMenu');
+  let mealState = computeAutoMeal(getNow());
+
+  // undefined = 아직 안 불러옴, null = 데이터 없음/오류, 배열 = 메뉴 목록
+  const mealData = { lunch: undefined, dinner: undefined };
+  let lastMealFetchDate = null;
 
   function computeAutoMeal(now){
     const totalMin = now.getHours() * 60 + now.getMinutes();
     return totalMin >= (12 * 60 + 40) ? 'dinner' : 'lunch';
   }
 
+  // NEIS DDISH_NM은 "메뉴1(1.2.5.)<br/>메뉴2(6.)" 형태 → 줄바꿈으로 나누고 알레르기 표기 제거
+  function parseMenu(row){
+    if(!row || !row.DDISH_NM) return null;
+    const items = row.DDISH_NM
+      .split(/<br\s*\/?>/i)
+      .map(item => item.replace(/\([^)]*\)/g, '').trim())
+      .filter(Boolean);
+    return items.length ? items : null;
+  }
+
+  async function fetchMeals(now){
+    const ymd = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+    lastMealFetchDate = ymd; // 먼저 표시해서 같은 날 중복 요청 방지
+    mealData.lunch = undefined;
+    mealData.dinner = undefined;
+    renderMeal();
+
+    try{
+      const res = await fetch(`${WORKER_URL}?date=${ymd}`);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const rows = (data.mealServiceDietInfo && data.mealServiceDietInfo[1] && data.mealServiceDietInfo[1].row) || [];
+      mealData.lunch = parseMenu(rows.find(r => r.MMEAL_SC_CODE === '2'));
+      mealData.dinner = parseMenu(rows.find(r => r.MMEAL_SC_CODE === '3'));
+    } catch(err){
+      console.error('급식 정보를 불러오지 못했습니다.', err);
+      mealData.lunch = null;
+      mealData.dinner = null;
+    }
+    renderMeal();
+  }
+
   function renderMeal(){
     mealLabelEl.textContent = mealState === 'lunch' ? '중식' : '석식';
+    const menu = mealState === 'lunch' ? mealData.lunch : mealData.dinner;
+
+    mealMenuEl.innerHTML = '';
+    if(menu === undefined){
+      mealMenuEl.textContent = '불러오는 중...';
+    } else if(menu === null){
+      mealMenuEl.textContent = '급식 정보 없음';
+    } else {
+      menu.forEach(item => {
+        const line = document.createElement('div');
+        line.textContent = item;
+        mealMenuEl.appendChild(line);
+      });
+    }
   }
   renderMeal();
 
@@ -419,6 +698,10 @@
       renderMeal();
     }
   }
+
+  // ---------- 시작 ----------
+  tick();
+  setInterval(tick, 1000);
 </script>
 
 </body>
